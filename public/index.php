@@ -4,8 +4,19 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-// Initialiser la session
-session_start();
+// Load configuration
+require_once __DIR__ . '/../app/config/config.php';
+
+// Load helper functions
+require_once __DIR__ . '/../app/helpers/functions.php';
+
+// Load database configuration
+require_once __DIR__ . '/../app/config/database.php';
+
+// Debug information
+error_log("Request URI: " . $_SERVER['REQUEST_URI']);
+error_log("BASE_URL: " . BASE_URL);
+error_log("Script Name: " . $_SERVER['SCRIPT_NAME']);
 
 // Si aucun token CSRF n'existe, en créer un
 if (!isset($_SESSION['csrf_token'])) {
@@ -15,108 +26,96 @@ if (!isset($_SESSION['csrf_token'])) {
 // Journalisation pour le débogage
 error_log("--- Nouvelle requête: " . $_SERVER['REQUEST_URI'] . " ---");
 
-// Configuration de l'application
-require_once __DIR__ . '/../app/config/database.php';
-require_once __DIR__ . '/../app/config/routes.php';
-
-// Autoloader pour les classes
+// Autoloader for classes
 spl_autoload_register(function ($class) {
-    // Rechercher d'abord dans le dossier des modèles
+    // Look in models directory first
     $modelFile = __DIR__ . '/../app/models/' . $class . '.php';
     if (file_exists($modelFile)) {
         require_once $modelFile;
         return;
     }
 
-    // Ensuite dans le dossier des contrôleurs
+    // Then in controllers directory
     $controllerFile = __DIR__ . '/../app/controllers/' . $class . '.php';
     if (file_exists($controllerFile)) {
         require_once $controllerFile;
         return;
     }
 
-    // Si ce n'est pas un modèle ou un contrôleur, chercher dans le chemin de base
+    // If not a model or controller, look in base path
     $baseFile = __DIR__ . '/../app/' . str_replace('\\', '/', $class) . '.php';
     if (file_exists($baseFile)) {
         require_once $baseFile;
     }
 });
 
-// Connexion à la base de données
 try {
-    $config = require __DIR__ . '/../app/config/database.php';
-    $dsn = "mysql:host={$config['host']};dbname={$config['dbname']};charset={$config['charset']}";
-    $db = new PDO($dsn, $config['username'], $config['password']);
-    $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch (PDOException $e) {
-    die("Erreur de connexion à la base de données : " . $e->getMessage());
-}
+    // Get the requested URL
+    $request_uri = $_SERVER['REQUEST_URI'];
+    error_log("Original Request URI: " . $request_uri);
 
-// Récupération de l'URL demandée
-$request_uri = $_SERVER['REQUEST_URI'];
-$base_path = dirname($_SERVER['SCRIPT_NAME']);
-$path = substr($request_uri, strlen($base_path));
+    // Remove query string if present
+    $request_uri = parse_url($request_uri, PHP_URL_PATH);
 
-// Gestion des paramètres de requête
-$questionPos = strpos($path, '?');
-if ($questionPos !== false) {
-    $path = substr($path, 0, $questionPos);
-}
-
-// Nettoyage de l'URL
-$path = trim($path, '/');
-if (empty($path)) {
-    $path = '/';
-} else {
-    $path = '/' . $path;
-}
-
-// Récupération des routes
-$routes = require __DIR__ . '/../app/config/routes.php';
-
-// Recherche de la route correspondante
-$matchedRoute = null;
-$params = [];
-$currentController = 'Non défini';
-$currentMethod = 'Non définie';
-
-foreach ($routes as $route => $handler) {
-    // Conversion du pattern de route en expression régulière
-    $pattern = preg_replace('/{([^\/]+)}/', '(?P<$1>[^/]+)', $route);
-    $pattern = str_replace('/', '\/', $pattern);
-    $pattern = '/^' . $pattern . '$/';
-
-    // Vérification si la route correspond
-    if (preg_match($pattern, $path, $matches)) {
-        $matchedRoute = $route;
-
-        // Extraction des paramètres
-        foreach ($matches as $key => $value) {
-            if (!is_numeric($key)) {
-                $params[$key] = $value;
-            }
-        }
-
-        break;
+    // Remove base URL from request
+    $base_path = parse_url(BASE_URL, PHP_URL_PATH);
+    if (!empty($base_path) && strpos($request_uri, $base_path) === 0) {
+        $request_uri = substr($request_uri, strlen($base_path));
     }
-}
 
-if ($matchedRoute) {
-    list($controller, $method) = explode('@', $routes[$matchedRoute]);
-    $currentController = $controller;
-    $currentMethod = $method;
+    // Clean up the path
+    $path = '/' . trim($request_uri, '/');
+    error_log("Final processed path: " . $path);
 
-    // Variables pour le débogage
-    $GLOBALS['current_controller'] = $currentController;
-    $GLOBALS['current_method'] = $currentMethod;
+    // Get routes
+    $routes = require __DIR__ . '/../app/config/routes.php';
+    error_log("Available routes: " . print_r(array_keys($routes), true));
 
-    // Instanciation du contrôleur
-    $controllerInstance = new $controller($db);
+    // Find matching route
+    $matchedRoute = null;
+    $params = [];
 
-    // Appel de la méthode avec les paramètres
-    call_user_func_array([$controllerInstance, $method], $params);
-} else {
-    // Route non trouvée
-    header("HTTP/1.0 404 Not Found");
-    echo "Page non trouvée";
+    foreach ($routes as $route => $handler) {
+        // Convert route pattern to regex
+        $pattern = preg_replace('/{([^\/]+)}/', '(?P<$1>[^/]+)', $route);
+        $pattern = str_replace('/', '\/', $pattern);
+        $pattern = '/^' . $pattern . '$/';
+        
+        error_log("Checking route pattern: " . $pattern . " against path: " . $path);
+
+        if (preg_match($pattern, $path, $matches)) {
+            $matchedRoute = $route;
+            error_log("Route matched: " . $route);
+            
+            // Extract parameters
+            foreach ($matches as $key => $value) {
+                if (!is_numeric($key)) {
+                    $params[$key] = $value;
+                }
+            }
+            break;
+        }
+    }
+
+    // If a route is found
+    if ($matchedRoute !== null) {
+        list($controller, $method) = explode('@', $routes[$matchedRoute]);
+        error_log("Executing controller: " . $controller . ", method: " . $method);
+        
+        // Create controller instance with database connection
+        $db = require __DIR__ . '/../app/config/database.php';
+        $controllerInstance = new $controller($db);
+        
+        // Call the method with parameters
+        call_user_func_array([$controllerInstance, $method], $params);
+    } else {
+        // Route not found - use ErrorController
+        error_log("No matching route found for path: " . $path);
+        $errorController = new ErrorController();
+        $errorController->notFound();
+    }
+} catch (Exception $e) {
+    error_log("Error: " . $e->getMessage());
+    $errorController = new ErrorController();
+    $errorController->serverError();
 }

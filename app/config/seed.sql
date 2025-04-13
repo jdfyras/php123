@@ -4,11 +4,11 @@ USE event_management;
 -- Désactiver la vérification des clés étrangères
 SET FOREIGN_KEY_CHECKS = 0;
 
--- Supprimer les données existantes
-TRUNCATE TABLE reviews;
-TRUNCATE TABLE reservations;
-TRUNCATE TABLE events;
-TRUNCATE TABLE users;
+-- Supprimer les données existantes dans l'ordre inverse des dépendances
+DELETE FROM reviews;
+DELETE FROM reservations;
+DELETE FROM events;
+DELETE FROM users;
 
 -- Réactiver la vérification des clés étrangères
 SET FOREIGN_KEY_CHECKS = 1;
@@ -18,7 +18,11 @@ INSERT INTO users (firstname, lastname, email, password_hash, role, status, crea
 VALUES 
 ('John', 'Doe', 'john@example.com', '$2y$10$T8ADVDUEdQmpM3AuYkZuwe/vTXlmnxL1OmQeVWnZgEpLDnWYVmb3W', 'user', 'actif', NOW()),
 ('Jane', 'Smith', 'jane@example.com', '$2y$10$T8ADVDUEdQmpM3AuYkZuwe/vTXlmnxL1OmQeVWnZgEpLDnWYVmb3W', 'organizer', 'actif', NOW()),
-('Admin', 'User', 'admin@example.com', '$2y$10$T8ADVDUEdQmpM3AuYkZuwe/vTXlmnxL1OmQeVWnZgEpLDnWYVmb3W', 'admin', 'actif', NOW());
+('Admin', 'User', 'admin@example.com', '$2y$10$T8ADVDUEdQmpM3AuYkZuwe/vTXlmnxL1OmQeVWnZgEpLDnWYVmb3W', 'admin', 'actif', NOW()),
+('Robert', 'Johnson', 'robert@example.com', '$2y$10$T8ADVDUEdQmpM3AuYkZuwe/vTXlmnxL1OmQeVWnZgEpLDnWYVmb3W', 'user', 'actif', NOW());
+
+-- Vérifier l'insertion des utilisateurs
+SELECT 'Users inserted:', COUNT(*) as user_count FROM users;
 
 -- Insérer des événements
 INSERT INTO events (title, description, date, location, price, available_tickets, created_at)
@@ -30,6 +34,9 @@ VALUES
 ('Exposition d\'Art Moderne', 'Découvrez les œuvres des plus grands artistes contemporains', '2025-05-01 10:00:00', 'Galerie d\'Art, Bordeaux', 15.00, 300, NOW()),
 ('Match de Football', 'Match de championnat opposant les deux meilleures équipes de la saison', '2025-05-25 21:00:00', 'Stade Municipal, Lille', 30.00, 800, NOW());
 
+-- Vérifier l'insertion des événements
+SELECT 'Events inserted:', COUNT(*) as event_count FROM events;
+
 -- Insérer des réservations
 INSERT INTO reservations (user_id, event_id, quantity, total_price, status, created_at)
 VALUES 
@@ -40,10 +47,16 @@ VALUES
 (3, 5, 4, 60.00, 'payé', NOW()),
 (3, 6, 2, 60.00, 'annulé', NOW());
 
+-- Vérifier l'insertion des réservations
+SELECT 'Reservations inserted:', COUNT(*) as reservation_count FROM reservations;
+
 -- Insérer des avis
 INSERT INTO reviews (user_id, event_id, rating, comment, created_at)
 VALUES 
 (1, 1, 5, 'Concert exceptionnel ! Les musiciens étaient talentueux et l\'ambiance était incroyable.', NOW()),
 (1, 3, 4, 'Conférence très intéressante avec des intervenants de qualité. Un petit bémol sur l\'organisation.', NOW()),
 (2, 2, 5, 'Festival incroyable ! La programmation était variée et la qualité sonore impeccable.', NOW()),
-(4, 5, 3, 'Exposition intéressante mais un peu courte pour le prix demandé.', NOW()); 
+(3, 5, 3, 'Exposition intéressante mais un peu courte pour le prix demandé.', NOW());
+
+-- Vérifier l'insertion des avis
+SELECT 'Reviews inserted:', COUNT(*) as review_count FROM reviews; 

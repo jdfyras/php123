@@ -52,7 +52,7 @@ class User
             $this->lastname = $user['lastname'];
             $this->email = $user['email'];
             $this->role = $user['role'];
-            return true;
+            return $user;
         }
         return false;
     }
@@ -103,6 +103,94 @@ class User
         $stmt = $this->db->prepare("SELECT * FROM users WHERE id = ?");
         $stmt->execute([$id]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Get all users
+     */
+    public function getAllUsers()
+    {
+        $stmt = $this->db->prepare("
+            SELECT * FROM users 
+            ORDER BY created_at DESC
+        ");
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Get users by status
+     */
+    public function getUsersByStatus($status)
+    {
+        $stmt = $this->db->prepare("
+            SELECT COUNT(*) as count 
+            FROM users 
+            WHERE status = ?
+        ");
+        $stmt->execute([$status]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $result['count'];
+    }
+
+    /**
+     * Get total number of users
+     */
+    public function getTotalUsers()
+    {
+        $stmt = $this->db->prepare("SELECT COUNT(*) as count FROM users");
+        $stmt->execute();
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $result['count'];
+    }
+
+    /**
+     * Update user details
+     */
+    public function updateUser($userId, $firstname, $lastname, $email, $role, $status)
+    {
+        // Check if email is already used by another user
+        $stmt = $this->db->prepare("
+            SELECT id FROM users 
+            WHERE email = ? AND id != ?
+        ");
+        $stmt->execute([$email, $userId]);
+        if ($stmt->rowCount() > 0) {
+            return false;
+        }
+
+        $stmt = $this->db->prepare("
+            UPDATE users 
+            SET firstname = ?, lastname = ?, email = ?, role = ?, status = ?
+            WHERE id = ?
+        ");
+        return $stmt->execute([$firstname, $lastname, $email, $role, $status, $userId]);
+    }
+
+    /**
+     * Update user status
+     */
+    public function updateUserStatus($userId, $status)
+    {
+        $stmt = $this->db->prepare("
+            UPDATE users 
+            SET status = ?
+            WHERE id = ?
+        ");
+        return $stmt->execute([$status, $userId]);
+    }
+
+    /**
+     * Update user role
+     */
+    public function updateUserRole($userId, $role)
+    {
+        $stmt = $this->db->prepare("
+            UPDATE users 
+            SET role = ?
+            WHERE id = ?
+        ");
+        return $stmt->execute([$role, $userId]);
     }
 
     // Getters

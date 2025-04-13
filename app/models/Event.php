@@ -5,42 +5,45 @@ class Event
 
     public function __construct($db)
     {
+        if (!$db instanceof PDO) {
+            throw new Exception("Invalid database connection");
+        }
         $this->db = $db;
+    }
+
+    /**
+     * Get total number of events
+     */
+    public function getTotalEvents()
+    {
+        try {
+            $stmt = $this->db->prepare("SELECT COUNT(*) as count FROM events");
+            $stmt->execute();
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $result['count'];
+        } catch (PDOException $e) {
+            error_log("Error in getTotalEvents: " . $e->getMessage());
+            return 0;
+        }
     }
 
     /**
      * Récupère tous les événements à venir
      */
-    public function getUpcomingEvents($limit = null)
+    public function getUpcomingEvents($limit = 6)
     {
-        // Log de debug
-        error_log("Début de getUpcomingEvents avec limite: " . ($limit ? $limit : "aucune"));
-
-        $query = "
-            SELECT * FROM events 
-            WHERE date >= NOW() 
-            ORDER BY date ASC
-        ";
-
         try {
-            if ($limit) {
-                $query .= " LIMIT " . intval($limit);
-                $stmt = $this->db->prepare($query);
-                error_log("Exécution de la requête SQL avec limite: " . $query);
-                $stmt->execute();
-            } else {
-                $stmt = $this->db->prepare($query);
-                error_log("Exécution de la requête SQL sans limite: " . $query);
-                $stmt->execute();
-            }
-
-            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            error_log("Nombre d'événements récupérés: " . count($results));
-            return $results;
+            $stmt = $this->db->prepare("
+                SELECT * FROM events 
+                WHERE date > NOW() 
+                ORDER BY date ASC 
+                LIMIT :limit
+            ");
+            $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+            $stmt->execute();
+            return $stmt->fetchAll();
         } catch (PDOException $e) {
-            error_log("Erreur SQL: " . $e->getMessage());
-            // En mode développement, on peut retourner un tableau vide
-            // En production, il serait préférable de gérer cette erreur différemment
+            error_log("Error in getUpcomingEvents: " . $e->getMessage());
             return [];
         }
     }
@@ -48,11 +51,17 @@ class Event
     /**
      * Récupère un événement par son ID
      */
-    public function getEventById($eventId)
+    public function getEventById($id)
     {
-        $stmt = $this->db->prepare("SELECT * FROM events WHERE id = ?");
-        $stmt->execute([$eventId]);
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        try {
+            $stmt = $this->db->prepare("SELECT * FROM events WHERE id = :id");
+            $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+            $stmt->execute();
+            return $stmt->fetch();
+        } catch (PDOException $e) {
+            error_log("Error in getEventById: " . $e->getMessage());
+            return null;
+        }
     }
 
     /**
@@ -97,5 +106,51 @@ class Event
         $event = $stmt->fetch(PDO::FETCH_ASSOC);
 
         return $event && $event['available_tickets'] >= $quantity;
+    }
+
+    public function createEvent($data)
+    {
+        try {
+            $stmt = $this->db->prepare("
+                INSERT INTO events (title, description, date, location, price, available_tickets)
+                VALUES (:title, :description, :date, :location, :price, :available_tickets)
+            ");
+            return $stmt->execute($data);
+        } catch (PDOException $e) {
+            error_log("Error in createEvent: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function updateEvent($id, $data)
+    {
+        try {
+            $sql = "UPDATE events SET ";
+            $updates = [];
+            foreach ($data as $key => $value) {
+                $updates[] = "$key = :$key";
+            }
+            $sql .= implode(', ', $updates);
+            $sql .= " WHERE id = :id";
+
+            $stmt = $this->db->prepare($sql);
+            $data['id'] = $id;
+            return $stmt->execute($data);
+        } catch (PDOException $e) {
+            error_log("Error in updateEvent: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function deleteEvent($id)
+    {
+        try {
+            $stmt = $this->db->prepare("DELETE FROM events WHERE id = :id");
+            $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+            return $stmt->execute();
+        } catch (PDOException $e) {
+            error_log("Error in deleteEvent: " . $e->getMessage());
+            return false;
+        }
     }
 }

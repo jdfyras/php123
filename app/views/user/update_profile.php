@@ -1,81 +1,74 @@
 <?php
-$title = "Modifier mon profil - Gestion d'Événements";
-ob_start();
+// Ne pas définir le titre ici, il est déjà défini dans le contrôleur
+// $title = "Modifier mon profil - Gestion d'Événements";
 ?>
 
-<div class="form-container">
-    <h1>Modifier mon profil</h1>
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h1 class="h4 mb-0">Modifier mon profil</h1>
+                </div>
+                <div class="card-body">
+                    <form action="<?= url('profile/update') ?>" method="post" class="needs-validation" novalidate>
+                        <div class="mb-3">
+                            <label for="firstname" class="form-label">Prénom</label>
+                            <input type="text" class="form-control" id="firstname" name="firstname" 
+                                value="<?= htmlspecialchars($user['firstname']) ?>" required>
+                            <div class="invalid-feedback">
+                                Le prénom est requis
+                            </div>
+                        </div>
 
-    <form action="/profile/update" method="post" class="profile-form" id="update-profile-form">
-        <!-- Protection CSRF -->
-        <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
+                        <div class="mb-3">
+                            <label for="lastname" class="form-label">Nom</label>
+                            <input type="text" class="form-control" id="lastname" name="lastname" 
+                                value="<?= htmlspecialchars($user['lastname']) ?>" required>
+                            <div class="invalid-feedback">
+                                Le nom est requis
+                            </div>
+                        </div>
 
-        <div class="form-group">
-            <label for="firstname">Prénom</label>
-            <input type="text" id="firstname" name="firstname" value="<?= htmlspecialchars($_POST['firstname'] ?? $user['firstname']) ?>" required>
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="email" name="email" 
+                                value="<?= htmlspecialchars($user['email']) ?>" required>
+                            <div class="invalid-feedback">
+                                L'email est requis et doit être valide
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <button type="submit" class="btn btn-primary">Enregistrer les modifications</button>
+                            <a href="<?= url('profile') ?>" class="btn btn-secondary">Annuler</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
-
-        <div class="form-group">
-            <label for="lastname">Nom</label>
-            <input type="text" id="lastname" name="lastname" value="<?= htmlspecialchars($_POST['lastname'] ?? $user['lastname']) ?>" required>
-        </div>
-
-        <div class="form-group">
-            <label for="email">Adresse email</label>
-            <input type="email" id="email" name="email" value="<?= htmlspecialchars($_POST['email'] ?? $user['email']) ?>" required>
-        </div>
-
-        <div class="form-actions">
-            <button type="submit" class="btn btn-primary">Enregistrer les modifications</button>
-            <a href="/profile" class="btn btn-secondary">Annuler</a>
-        </div>
-    </form>
+    </div>
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const form = document.getElementById('update-profile-form');
+// Example starter JavaScript for disabling form submissions if there are invalid fields
+(function () {
+    'use strict'
 
-        form.addEventListener('submit', function(e) {
-            const email = document.getElementById('email').value;
-            const firstname = document.getElementById('firstname').value;
-            const lastname = document.getElementById('lastname').value;
-            let hasError = false;
-            let errorMessages = [];
+    // Fetch all the forms we want to apply custom Bootstrap validation styles to
+    var forms = document.querySelectorAll('.needs-validation')
 
-            // Valider l'email
-            if (!isValidEmail(email)) {
-                errorMessages.push("L'adresse email n'est pas valide");
-                hasError = true;
-            }
+    // Loop over them and prevent submission
+    Array.prototype.slice.call(forms)
+        .forEach(function (form) {
+            form.addEventListener('submit', function (event) {
+                if (!form.checkValidity()) {
+                    event.preventDefault()
+                    event.stopPropagation()
+                }
 
-            // Vérifier que le prénom n'est pas vide
-            if (!firstname.trim()) {
-                errorMessages.push("Le prénom est requis");
-                hasError = true;
-            }
-
-            // Vérifier que le nom n'est pas vide
-            if (!lastname.trim()) {
-                errorMessages.push("Le nom est requis");
-                hasError = true;
-            }
-
-            if (hasError) {
-                e.preventDefault();
-                alert(errorMessages.join("\n"));
-            }
-        });
-
-        function isValidEmail(email) {
-            const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            return re.test(email);
-        }
-    });
+                form.classList.add('was-validated')
+            }, false)
+        })
+})()
 </script>
-
-<?php
-$content = ob_get_clean();
-/* Les vues ne sont pas censées charger le layout directement, c'est le contrôleur qui s'en charge */
-/* require_once 'app/views/layouts/main.php'; */
-?>

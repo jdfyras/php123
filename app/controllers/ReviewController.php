@@ -15,9 +15,8 @@ class ReviewController
      */
     public function create($eventId)
     {
-        if (!isset($_SESSION['user_id'])) {
-            header('Location: /login');
-            exit;
+        if (!isLoggedIn()) {
+            redirect('login');
         }
 
         // Vérifier si l'événement existe
@@ -26,30 +25,20 @@ class ReviewController
         $event = $eventStmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$event) {
-            header('Location: /events');
-            exit;
+            redirect('events');
         }
 
         // Vérifier si l'utilisateur a déjà posté un avis pour cet événement
         if ($this->reviewModel->hasUserReviewedEvent($_SESSION['user_id'], $eventId)) {
             $_SESSION['error'] = "Vous avez déjà posté un avis pour cet événement.";
-            header('Location: /events/' . $eventId);
-            exit;
+            redirect("events/$eventId");
         }
 
         // Vérifier si l'utilisateur a assisté à l'événement (a une réservation)
-        $reservationStmt = $this->db->prepare("
-            SELECT COUNT(*) as count
-            FROM reservations
-            WHERE user_id = ? AND event_id = ? AND status = 'payé' AND event_id IN (SELECT id FROM events WHERE date < NOW())
-        ");
-        $reservationStmt->execute([$_SESSION['user_id'], $eventId]);
-        $result = $reservationStmt->fetch(PDO::FETCH_ASSOC);
-
-        if ($result['count'] === 0) {
+        $hasAttended = $this->reviewModel->hasUserAttendedEvent($_SESSION['user_id'], $eventId);
+        if (!$hasAttended) {
             $_SESSION['error'] = "Vous devez avoir assisté à l'événement pour pouvoir laisser un avis.";
-            header('Location: /events/' . $eventId);
-            exit;
+            redirect("events/$eventId");
         }
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -67,8 +56,7 @@ class ReviewController
             if (empty($errors)) {
                 if ($this->reviewModel->createReview($_SESSION['user_id'], $eventId, $rating, $comment)) {
                     $_SESSION['success'] = "Votre avis a été publié avec succès.";
-                    header('Location: /events/' . $eventId);
-                    exit;
+                    redirect("events/$eventId");
                 } else {
                     $errors[] = "Une erreur est survenue lors de la création de l'avis.";
                 }
@@ -76,7 +64,7 @@ class ReviewController
         }
 
         // Charger la vue
-        $title = "Ajouter un avis - " . htmlspecialchars($event['title']);
+        $title = "Ajouter un avis - " . htmlspecialchars($event['title']) . " - " . APP_NAME;
         ob_start();
         require_once __DIR__ . '/../views/reviews/create.php';
         $content = ob_get_clean();
@@ -89,22 +77,14 @@ class ReviewController
      */
     public function edit($reviewId)
     {
-        if (!isset($_SESSION['user_id'])) {
-            header('Location: /login');
-            exit;
+        if (!isLoggedIn()) {
+            redirect('login');
         }
 
         $review = $this->reviewModel->getReviewById($reviewId);
 
-        if (!$review) {
-            header('Location: /profile');
-            exit;
-        }
-
-        // Vérifier que l'avis appartient bien à l'utilisateur
-        if ($review['user_id'] != $_SESSION['user_id']) {
-            header('Location: /profile');
-            exit;
+        if (!$review || $review['user_id'] != $_SESSION['user_id']) {
+            redirect('profile');
         }
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -122,8 +102,7 @@ class ReviewController
             if (empty($errors)) {
                 if ($this->reviewModel->updateReview($reviewId, $_SESSION['user_id'], $rating, $comment)) {
                     $_SESSION['success'] = "Votre avis a été mis à jour avec succès.";
-                    header('Location: /profile');
-                    exit;
+                    redirect('profile');
                 } else {
                     $errors[] = "Une erreur est survenue lors de la mise à jour de l'avis.";
                 }
@@ -131,7 +110,7 @@ class ReviewController
         }
 
         // Charger la vue
-        $title = "Modifier votre avis - " . htmlspecialchars($review['event_title']);
+        $title = "Modifier votre avis - " . htmlspecialchars($review['event_title']) . " - " . APP_NAME;
         ob_start();
         require_once __DIR__ . '/../views/reviews/edit.php';
         $content = ob_get_clean();
@@ -144,22 +123,14 @@ class ReviewController
      */
     public function delete($reviewId)
     {
-        if (!isset($_SESSION['user_id'])) {
-            header('Location: /login');
-            exit;
+        if (!isLoggedIn()) {
+            redirect('login');
         }
 
         $review = $this->reviewModel->getReviewById($reviewId);
 
-        if (!$review) {
-            header('Location: /profile');
-            exit;
-        }
-
-        // Vérifier que l'avis appartient bien à l'utilisateur
-        if ($review['user_id'] != $_SESSION['user_id']) {
-            header('Location: /profile');
-            exit;
+        if (!$review || $review['user_id'] != $_SESSION['user_id']) {
+            redirect('profile');
         }
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -168,12 +139,11 @@ class ReviewController
             } else {
                 $_SESSION['error'] = "Une erreur est survenue lors de la suppression de l'avis.";
             }
-            header('Location: /profile');
-            exit;
+            redirect('profile');
         }
 
         // Charger la vue
-        $title = "Supprimer votre avis";
+        $title = "Supprimer votre avis - " . APP_NAME;
         ob_start();
         require_once __DIR__ . '/../views/reviews/delete.php';
         $content = ob_get_clean();

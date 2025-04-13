@@ -27,6 +27,19 @@ $routes = [
     '/events/{id}/review' => 'ReviewController@create',
     '/reviews/edit/{id}' => 'ReviewController@edit',
     '/reviews/delete/{id}' => 'ReviewController@delete',
+
+    // Routes admin
+    '/admin/dashboard' => 'AdminController@dashboard',
+    '/admin/users' => 'AdminController@users',
+    '/admin/users/edit/{id}' => 'AdminController@updateUser',
+    '/admin/users/status/{id}' => 'AdminController@updateUserStatus',
+    '/admin/users/role/{id}' => 'AdminController@updateUserRole',
+    '/admin/events' => 'AdminController@events',
+    '/admin/events/create' => 'AdminController@createEvent',
+    '/admin/events/edit/{id}' => 'AdminController@updateEvent',
+    '/admin/events/delete/{id}' => 'AdminController@deleteEvent',
+    '/admin/reservations' => 'AdminController@reservations',
+    '/admin/reviews' => 'AdminController@reviews'
 ];
 
 // Affichage du contenu du fichier pour débogage

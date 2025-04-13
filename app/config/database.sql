@@ -1,5 +1,6 @@
--- Création de la base de données
-CREATE DATABASE IF NOT EXISTS event_management CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+-- Drop database if exists and create new one
+DROP DATABASE IF EXISTS event_management;
+CREATE DATABASE event_management CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE event_management;
 
 -- Table users

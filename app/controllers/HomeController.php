@@ -1,49 +1,95 @@
 <?php
 class HomeController
 {
-    private $db;
     private $eventModel;
+    private $userModel;
 
-    public function __construct($db)
+    public function __construct()
     {
-        $this->db = $db;
+        $db = Database::getInstance()->getConnection();
         $this->eventModel = new Event($db);
-        error_log("HomeController initialisé");
+        $this->userModel = new User($db);
     }
 
     public function index()
     {
-        error_log("Début de la méthode index du HomeController");
+        $title = "Accueil - Gestion d'Événements";
+        $currentPage = 'home';
 
-        // Récupérer les événements à venir
-        $upcomingEvents = $this->eventModel->getUpcomingEvents(6);
-        error_log("Événements récupérés: " . print_r($upcomingEvents, true));
+        // Get upcoming events
+        $events = $this->eventModel->getUpcomingEvents(6); // Limit to 6 events
 
-        // Si aucun événement n'est disponible, on crée un événement de test
-        if (empty($upcomingEvents)) {
-            error_log("Aucun événement trouvé - Vérification si la table events existe");
-            try {
-                $stmt = $this->db->query("SHOW TABLES LIKE 'events'");
-                if ($stmt->rowCount() == 0) {
-                    error_log("La table events n'existe pas - Les tables de la base de données ne sont pas créées");
-                } else {
-                    error_log("La table events existe mais est vide");
-                }
-            } catch (PDOException $e) {
-                error_log("Erreur lors de la vérification des tables: " . $e->getMessage());
+        // Format event descriptions
+        foreach ($events as &$event) {
+            if (strlen($event['description']) > 100) {
+                $event['description'] = substr($event['description'], 0, 100) . '...';
             }
         }
 
-        // Charger la vue home
-        $title = "Accueil - Gestion d'Événements";
-        error_log("Chargement de la vue home/index.php");
+        // Start output buffering
         ob_start();
         require_once __DIR__ . '/../views/home/index.php';
         $content = ob_get_clean();
-        error_log("Vue home/index.php chargée");
-
-        error_log("Chargement du layout main.php");
         require_once __DIR__ . '/../views/layouts/main.php';
-        error_log("Layout main.php chargé");
+    }
+
+    public function search()
+    {
+        header('Content-Type: application/json');
+        
+        $query = $_GET['query'] ?? '';
+        $category = $_GET['category'] ?? '';
+        $date = $_GET['date'] ?? '';
+        
+        try {
+            $events = $this->eventModel->searchEvents($query, $category, $date);
+            echo json_encode(['success' => true, 'events' => $events]);
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
+    public function newsletter()
+    {
+        header('Content-Type: application/json');
+        
+        $email = $_POST['email'] ?? '';
+        
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Email invalide']);
+            return;
+        }
+        
+        try {
+            // Add newsletter subscription logic here
+            echo json_encode(['success' => true, 'message' => 'Inscription réussie à la newsletter']);
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
+    public function about()
+    {
+        requireAuth();
+        $currentPage = 'about';
+        $title = "À propos - Gestion d'Événements";
+        ob_start();
+        require_once __DIR__ . '/../views/home/about.php';
+        $content = ob_get_clean();
+        require_once __DIR__ . '/../views/layouts/main.php';
+    }
+
+    public function contact()
+    {
+        requireAuth();
+        $currentPage = 'contact';
+        $title = "Contact - Gestion d'Événements";
+        ob_start();
+        require_once __DIR__ . '/../views/home/contact.php';
+        $content = ob_get_clean();
+        require_once __DIR__ . '/../views/layouts/main.php';
     }
 }

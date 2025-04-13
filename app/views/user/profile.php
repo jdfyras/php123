@@ -17,8 +17,8 @@
             <p><strong>Compte créé le :</strong> <?= date('d/m/Y', strtotime($user['created_at'])) ?></p>
         </div>
         <div class="profile-actions">
-            <a href="/profile/update" class="btn btn-secondary">Modifier mes informations</a>
-            <a href="/profile/change-password" class="btn btn-secondary">Changer mon mot de passe</a>
+            <a href="<?= url('profile/update') ?>" class="btn btn-secondary">Modifier mes informations</a>
+            <a href="<?= url('profile/change-password') ?>" class="btn btn-secondary">Changer mon mot de passe</a>
         </div>
     </div>
 
@@ -118,11 +118,86 @@
         <h2>Zone danger</h2>
         <p>Attention, ces actions sont irréversibles.</p>
         <div class="danger-actions">
-            <a href="/profile/deactivate" class="btn btn-warning">Désactiver mon compte</a>
-            <a href="/profile/delete" class="btn btn-danger">Supprimer mon compte</a>
+            <a href="<?= url('profile/deactivate') ?>" class="btn btn-warning" onclick="return confirm('Êtes-vous sûr de vouloir désactiver votre compte ?')">Désactiver mon compte</a>
+            <a href="<?= url('profile/delete') ?>" class="btn btn-danger" onclick="return confirm('Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible.')">Supprimer mon compte</a>
         </div>
     </div>
 </div>
+
+<style>
+.profile-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.profile-section {
+    background: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.profile-info {
+    margin-bottom: 20px;
+}
+
+.profile-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.danger-zone {
+    border: 1px solid #dc3545;
+    border-radius: 8px;
+}
+
+.danger-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.reservation-card, .review-card {
+    background: #f8f9fa;
+    border-radius: 4px;
+    padding: 15px;
+    margin-bottom: 15px;
+}
+
+.reservation-header, .review-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.reservation-status {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.875rem;
+}
+
+.status-confirmé { background: #28a745; color: white; }
+.status-en_attente { background: #ffc107; color: black; }
+.status-annulé { background: #dc3545; color: white; }
+
+.review-rating .star {
+    color: #ffc107;
+    font-size: 1.2rem;
+}
+
+.review-rating .star.filled {
+    color: #ffc107;
+}
+
+.review-date {
+    color: #6c757d;
+    font-size: 0.875rem;
+    margin-top: 10px;
+}
+</style>
 
 <?php
 // Ne pas terminer la capture du contenu ici, c'est fait dans le contrôleur

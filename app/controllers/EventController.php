@@ -27,7 +27,7 @@ class EventController
         }
 
         // Charger la vue
-        $title = "Événements - Gestion d'Événements";
+        $title = "Événements - " . APP_NAME;
         ob_start();
         require_once __DIR__ . '/../views/events/index.php';
         $content = ob_get_clean();
@@ -44,8 +44,7 @@ class EventController
         $event = $this->eventModel->getEventById($id);
 
         if (!$event) {
-            header('Location: /events');
-            exit;
+            redirect('events');
         }
 
         // Récupérer les avis pour cet événement
@@ -59,7 +58,7 @@ class EventController
         }
 
         // Charger la vue
-        $title = htmlspecialchars($event['title']) . " - Gestion d'Événements";
+        $title = htmlspecialchars($event['title']) . " - " . APP_NAME;
         ob_start();
         require_once __DIR__ . '/../views/events/show.php';
         $content = ob_get_clean();

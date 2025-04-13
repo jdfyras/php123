@@ -6,274 +6,194 @@ class UserController
 
     public function __construct($db)
     {
+        if (!$db instanceof PDO) {
+            throw new Exception("Invalid database connection");
+        }
         $this->db = $db;
         $this->userModel = new User($db);
     }
 
     public function register()
     {
-        error_log("Début de la méthode register du UserController");
+        // If user is already logged in, redirect to home
+        if (isLoggedIn()) {
+            redirect('');
+        }
 
+        $currentPage = 'register';
+        $title = "Inscription - Gestion d'Événements";
+        
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            error_log("Traitement du formulaire d'inscription (POST)");
             $firstname = $_POST['firstname'] ?? '';
             $lastname = $_POST['lastname'] ?? '';
             $email = $_POST['email'] ?? '';
             $password = $_POST['password'] ?? '';
             $confirm_password = $_POST['confirm_password'] ?? '';
 
-            // Validation des données
-            $errors = [];
-            if (empty($firstname)) $errors[] = "Le prénom est requis";
-            if (empty($lastname)) $errors[] = "Le nom est requis";
-            if (empty($email)) $errors[] = "L'email est requis";
-            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) $errors[] = "L'email n'est pas valide";
-            if (empty($password)) $errors[] = "Le mot de passe est requis";
-            if (strlen($password) < 8) $errors[] = "Le mot de passe doit contenir au moins 8 caractères";
-            if ($password !== $confirm_password) $errors[] = "Les mots de passe ne correspondent pas";
-
-            if (empty($errors)) {
-                error_log("Tentative d'inscription pour {$email}");
-                if ($this->userModel->register($firstname, $lastname, $email, $password)) {
-                    error_log("Inscription réussie pour {$email}, redirection vers /login");
-                    header('Location: /login');
-                    exit;
-                } else {
-                    error_log("Échec d'inscription: email {$email} déjà utilisé");
-                    $errors[] = "Cette adresse email est déjà utilisée";
-                }
+            if ($password !== $confirm_password) {
+                $_SESSION['error'] = "Les mots de passe ne correspondent pas";
             } else {
-                error_log("Erreurs de validation: " . implode(", ", $errors));
+                $result = $this->userModel->register($firstname, $lastname, $email, $password);
+                if ($result) {
+                    $_SESSION['success'] = "Inscription réussie ! Vous pouvez maintenant vous connecter.";
+                    redirect('login');
+                } else {
+                    $_SESSION['error'] = "L'email est déjà utilisé";
+                }
             }
-        } else {
-            error_log("Affichage du formulaire d'inscription (GET)");
-        }
-
-        // Charger la vue
-        $title = "Inscription - Gestion d'Événements";
-        error_log("Chargement de la vue register.php");
-
-        // S'assurer que le buffer est vide et prêt à être utilisé
-        if (ob_get_level()) {
-            ob_end_clean();
         }
 
         ob_start();
         require_once __DIR__ . '/../views/user/register.php';
         $content = ob_get_clean();
-
-        // Vérifier que le contenu a bien été chargé
-        if (empty($content)) {
-            error_log("ERREUR: Le contenu de la vue register.php est vide");
-            $content = '<div class="alert alert-danger">Erreur lors du chargement du formulaire d\'inscription</div>';
-        } else {
-            error_log("Vue register.php chargée avec succès (" . strlen($content) . " caractères)");
-        }
-
-        error_log("Chargement du layout main.php");
         require_once __DIR__ . '/../views/layouts/main.php';
-        error_log("Layout main.php chargé");
     }
 
     public function login()
     {
-        error_log("Début de la méthode login du UserController");
+        // If user is already logged in, redirect to home
+        if (isLoggedIn()) {
+            redirect('');
+        }
 
+        $currentPage = 'login';
+        $title = "Connexion - Gestion d'Événements";
+        
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            error_log("Traitement du formulaire de connexion (POST)");
             $email = $_POST['email'] ?? '';
             $password = $_POST['password'] ?? '';
 
-            // Débogage des informations reçues
-            error_log("Email soumis: " . $email);
-            error_log("Mot de passe soumis: [CACHÉ POUR SÉCURITÉ]");
-
-            // Vérifier si l'utilisateur existe dans la base de données
-            $stmt = $this->db->prepare("SELECT * FROM users WHERE email = ?");
-            $stmt->execute([$email]);
-            $user = $stmt->fetch(PDO::FETCH_ASSOC);
-
+            $user = $this->userModel->login($email, $password);
             if ($user) {
-                error_log("Utilisateur trouvé dans la base de données: " . $user['email'] . " (ID: " . $user['id'] . ", Rôle: " . $user['role'] . ", Statut: " . $user['status'] . ")");
-
-                // Vérifier si le mot de passe est correct
-                $password_matches = password_verify($password, $user['password_hash']);
-                error_log("Vérification du mot de passe: " . ($password_matches ? "Réussie" : "Échouée"));
+                $_SESSION['user_id'] = $user['id'];
+                $_SESSION['user_email'] = $user['email'];
+                $_SESSION['user_role'] = $user['role'];
+                $_SESSION['user_firstname'] = $user['firstname'];
+                $_SESSION['user_lastname'] = $user['lastname'];
+                $_SESSION['success'] = "Connexion réussie !";
+                
+                if ($user['role'] === 'admin') {
+                    redirect('admin/dashboard');
+                } else {
+                    redirect('');
+                }
             } else {
-                error_log("Aucun utilisateur trouvé avec l'email: " . $email);
+                $_SESSION['error'] = "Email ou mot de passe incorrect";
             }
-
-            if ($this->userModel->login($email, $password)) {
-                $_SESSION['user_id'] = $this->userModel->getId();
-                $_SESSION['user_role'] = $this->userModel->getRole();
-                error_log("Connexion réussie pour {$email}, redirection vers /profile");
-                header('Location: /profile');
-                exit;
-            } else {
-                error_log("Échec de connexion pour {$email}");
-                $error = "Email ou mot de passe incorrect";
-            }
-        } else {
-            error_log("Affichage du formulaire de connexion (GET)");
-        }
-
-        // Charger la vue
-        $title = "Connexion - Gestion d'Événements";
-        error_log("Chargement de la vue login.php");
-
-        // S'assurer que le buffer est vide et prêt à être utilisé
-        if (ob_get_level()) {
-            ob_end_clean();
         }
 
         ob_start();
         require_once __DIR__ . '/../views/user/login.php';
         $content = ob_get_clean();
-
-        // Vérifier que le contenu a bien été chargé
-        if (empty($content)) {
-            error_log("ERREUR: Le contenu de la vue login.php est vide");
-            $content = '<div class="alert alert-danger">Erreur lors du chargement du formulaire de connexion</div>';
-        } else {
-            error_log("Vue login.php chargée avec succès (" . strlen($content) . " caractères)");
-        }
-
-        error_log("Chargement du layout main.php");
         require_once __DIR__ . '/../views/layouts/main.php';
-        error_log("Layout main.php chargé");
+    }
+
+    public function logout()
+    {
+        session_destroy();
+        redirect('login');
     }
 
     public function profile()
     {
-        if (!isset($_SESSION['user_id'])) {
-            header('Location: /login');
-            exit;
-        }
-
-        $user = $this->userModel->getUserById($_SESSION['user_id']);
-
-        // Charger la vue
+        requireAuth();
+        $currentPage = 'profile';
         $title = "Mon Profil - Gestion d'Événements";
-
-        // S'assurer que le buffer est vide et prêt à être utilisé
-        if (ob_get_level()) {
-            ob_end_clean();
-        }
-
-        // Passer l'objet de base de données à la vue
-        $db = $this->db;
+        
+        $userId = getCurrentUserId();
+        $user = $this->userModel->getUserById($userId);
 
         ob_start();
         require_once __DIR__ . '/../views/user/profile.php';
         $content = ob_get_clean();
-
-        // Vérifier que le contenu a bien été chargé
-        if (empty($content)) {
-            error_log("ERREUR: Le contenu de la vue profile.php est vide");
-            $content = '<div class="alert alert-danger">Erreur lors du chargement du profil</div>';
-        }
-
         require_once __DIR__ . '/../views/layouts/main.php';
     }
 
     public function updateProfile()
     {
-        if (!isset($_SESSION['user_id'])) {
-            header('Location: /login');
-            exit;
-        }
+        requireAuth();
+        $currentPage = 'update-profile';
+        $title = "Modifier mon profil - Gestion d'Événements";
+        
+        $userId = getCurrentUserId();
+        $user = $this->userModel->getUserById($userId);
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $firstname = $_POST['firstname'] ?? '';
             $lastname = $_POST['lastname'] ?? '';
             $email = $_POST['email'] ?? '';
 
-            $errors = [];
-            if (empty($firstname)) $errors[] = "Le prénom est requis";
-            if (empty($lastname)) $errors[] = "Le nom est requis";
-            if (empty($email)) $errors[] = "L'email est requis";
-            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) $errors[] = "L'email n'est pas valide";
-
-            if (empty($errors)) {
-                if ($this->userModel->updateProfile($_SESSION['user_id'], $firstname, $lastname, $email)) {
-                    header('Location: /profile');
-                    exit;
-                } else {
-                    $errors[] = "Erreur lors de la mise à jour du profil";
-                }
+            $result = $this->userModel->updateProfile($userId, $firstname, $lastname, $email);
+            if ($result) {
+                $_SESSION['user_firstname'] = $firstname;
+                $_SESSION['user_lastname'] = $lastname;
+                $_SESSION['user_email'] = $email;
+                $_SESSION['success'] = "Profil mis à jour avec succès";
+                redirect('profile');
+            } else {
+                $_SESSION['error'] = "Erreur lors de la mise à jour du profil";
             }
         }
 
-        $user = $this->userModel->getUserById($_SESSION['user_id']);
-
-        // Charger la vue
-        $title = "Modifier mon profil - Gestion d'Événements";
         ob_start();
         require_once __DIR__ . '/../views/user/update_profile.php';
         $content = ob_get_clean();
-
         require_once __DIR__ . '/../views/layouts/main.php';
     }
 
     public function changePassword()
     {
-        if (!isset($_SESSION['user_id'])) {
-            header('Location: /login');
-            exit;
-        }
+        requireAuth();
+        $currentPage = 'change-password';
+        $title = "Changer mon mot de passe - Gestion d'Événements";
+        
+        $userId = getCurrentUserId();
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $current_password = $_POST['current_password'] ?? '';
             $new_password = $_POST['new_password'] ?? '';
             $confirm_password = $_POST['confirm_password'] ?? '';
 
-            $errors = [];
-            if (empty($current_password)) $errors[] = "Le mot de passe actuel est requis";
-            if (empty($new_password)) $errors[] = "Le nouveau mot de passe est requis";
-            if (strlen($new_password) < 8) $errors[] = "Le nouveau mot de passe doit contenir au moins 8 caractères";
-            if ($new_password !== $confirm_password) $errors[] = "Les nouveaux mots de passe ne correspondent pas";
-
-            if (empty($errors)) {
-                $user = $this->userModel->getUserById($_SESSION['user_id']);
-                if (password_verify($current_password, $user['password_hash'])) {
-                    if ($this->userModel->changePassword($_SESSION['user_id'], $new_password)) {
-                        header('Location: /profile');
-                        exit;
-                    } else {
-                        $errors[] = "Erreur lors du changement de mot de passe";
-                    }
+            // Verify current password
+            $user = $this->userModel->getUserById($userId);
+            if (!password_verify($current_password, $user['password_hash'])) {
+                $_SESSION['error'] = "Le mot de passe actuel est incorrect";
+            } elseif ($new_password !== $confirm_password) {
+                $_SESSION['error'] = "Les nouveaux mots de passe ne correspondent pas";
+            } elseif (strlen($new_password) < 8) {
+                $_SESSION['error'] = "Le nouveau mot de passe doit contenir au moins 8 caractères";
+            } else {
+                $result = $this->userModel->changePassword($userId, $new_password);
+                if ($result) {
+                    $_SESSION['success'] = "Mot de passe modifié avec succès";
+                    redirect('profile');
                 } else {
-                    $errors[] = "Le mot de passe actuel est incorrect";
+                    $_SESSION['error'] = "Erreur lors de la modification du mot de passe";
                 }
             }
         }
 
-        // Charger la vue
-        $title = "Changer de mot de passe - Gestion d'Événements";
         ob_start();
         require_once __DIR__ . '/../views/user/change_password.php';
         $content = ob_get_clean();
-
         require_once __DIR__ . '/../views/layouts/main.php';
     }
 
     public function deactivateAccount()
     {
-        if (!isset($_SESSION['user_id'])) {
-            header('Location: /login');
-            exit;
+        if (!isLoggedIn()) {
+            redirect('login');
         }
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($this->userModel->deactivateAccount($_SESSION['user_id'])) {
                 session_destroy();
-                header('Location: /');
-                exit;
+                redirect('');
             }
         }
 
         // Charger la vue
-        $title = "Désactiver mon compte - Gestion d'Événements";
+        $title = "Désactiver mon compte - " . APP_NAME;
         ob_start();
         require_once __DIR__ . '/../views/user/deactivate_account.php';
         $content = ob_get_clean();
@@ -283,32 +203,23 @@ class UserController
 
     public function deleteAccount()
     {
-        if (!isset($_SESSION['user_id'])) {
-            header('Location: /login');
-            exit;
+        if (!isLoggedIn()) {
+            redirect('login');
         }
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($this->userModel->deleteAccount($_SESSION['user_id'])) {
                 session_destroy();
-                header('Location: /');
-                exit;
+                redirect('');
             }
         }
 
         // Charger la vue
-        $title = "Supprimer mon compte - Gestion d'Événements";
+        $title = "Supprimer mon compte - " . APP_NAME;
         ob_start();
         require_once __DIR__ . '/../views/user/delete_account.php';
         $content = ob_get_clean();
 
         require_once __DIR__ . '/../views/layouts/main.php';
-    }
-
-    public function logout()
-    {
-        session_destroy();
-        header('Location: /');
-        exit;
     }
 }
