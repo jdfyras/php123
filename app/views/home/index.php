@@ -127,7 +127,7 @@
         <?php foreach ($events as $event): ?>
         <div class="col-md-4">
             <div class="card event-card">
-                <img src="<?php echo !empty($event['image']) ? htmlspecialchars($event['image']) : '/event_management/public/assets/images/event-placeholder.jpg'; ?>" 
+                <img src="<?php echo !empty($event['image']) ? htmlspecialchars($event['image']) : 'https://fakeimg.pl/600x400/8f8d8d/e6e1e1?text=Event+Photo'; ?>" 
                      class="card-img-top event-image" alt="<?php echo htmlspecialchars($event['title']); ?>">
                 <div class="card-body">
                     <div class="event-date mb-2">

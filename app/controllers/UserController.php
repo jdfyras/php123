@@ -35,8 +35,13 @@ class UserController
             } else {
                 $result = $this->userModel->register($firstname, $lastname, $email, $password);
                 if ($result) {
-                    $_SESSION['success'] = "Inscription réussie ! Vous pouvez maintenant vous connecter.";
-                    redirect('login');
+                    // Get the code from the database
+                    $user = $this->userModel->getUserByEmail($email);
+                    $verification_code = $user['verification_code'];
+                    $_SESSION['verification_email'] = $email;
+                    require_once __DIR__ . '/../helpers/MailHelper.php';
+                    MailHelper::sendMail($email, 'Votre code de vérification', "Votre code de vérification est : <b>$verification_code</b>");
+                    redirect('verify_code');
                 } else {
                     $_SESSION['error'] = "L'email est déjà utilisé";
                 }
@@ -220,6 +225,35 @@ class UserController
         require_once __DIR__ . '/../views/user/delete_account.php';
         $content = ob_get_clean();
 
+        require_once __DIR__ . '/../views/layouts/main.php';
+    }
+
+    // Add a new method for code verification (skeleton)
+    public function verify_code()
+    {
+        $currentPage = 'verify_code';
+        $title = "Vérification du code - Gestion d'Événements";
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $input_code = $_POST['verification_code'] ?? '';
+            if (isset($_SESSION['verification_email'])) {
+                $email = $_SESSION['verification_email'];
+                $user = $this->userModel->getUserByEmail($email);
+                if ($user && $this->userModel->checkVerificationCode($email, $input_code)) {
+                    $this->userModel->verifyUser($email);
+                    unset($_SESSION['verification_email']);
+                    $_SESSION['success'] = "Votre inscription est vérifiée ! Vous pouvez maintenant vous connecter.";
+                    redirect('login');
+                } else {
+                    $_SESSION['error'] = "Code de vérification incorrect. Veuillez réessayer.";
+                }
+            } else {
+                $_SESSION['error'] = "Session expirée ou invalide. Veuillez vous réinscrire.";
+                redirect('register');
+            }
+        }
+        ob_start();
+        require_once __DIR__ . '/../views/user/verify_code.php';
+        $content = ob_get_clean();
         require_once __DIR__ . '/../views/layouts/main.php';
     }
 }

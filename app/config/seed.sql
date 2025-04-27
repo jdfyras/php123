@@ -14,12 +14,12 @@ DELETE FROM users;
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- Insérer des utilisateurs (mot de passe "password123" hashé)
-INSERT INTO users (firstname, lastname, email, password_hash, role, status, created_at)
+INSERT INTO users (firstname, lastname, email, password_hash, role, status, created_at, is_verified, verification_code)
 VALUES 
-('John', 'Doe', 'john@example.com', '$2y$10$T8ADVDUEdQmpM3AuYkZuwe/vTXlmnxL1OmQeVWnZgEpLDnWYVmb3W', 'user', 'actif', NOW()),
-('Jane', 'Smith', 'jane@example.com', '$2y$10$T8ADVDUEdQmpM3AuYkZuwe/vTXlmnxL1OmQeVWnZgEpLDnWYVmb3W', 'organizer', 'actif', NOW()),
-('Admin', 'User', 'admin@example.com', '$2y$10$T8ADVDUEdQmpM3AuYkZuwe/vTXlmnxL1OmQeVWnZgEpLDnWYVmb3W', 'admin', 'actif', NOW()),
-('Robert', 'Johnson', 'robert@example.com', '$2y$10$T8ADVDUEdQmpM3AuYkZuwe/vTXlmnxL1OmQeVWnZgEpLDnWYVmb3W', 'user', 'actif', NOW());
+('John', 'Doe', 'john@example.com', '$2y$10$T8ADVDUEdQmpM3AuYkZuwe/vTXlmnxL1OmQeVWnZgEpLDnWYVmb3W', 'user', 'actif', NOW(), 1, NULL),
+('Jane', 'Smith', 'jane@example.com', '$2y$10$T8ADVDUEdQmpM3AuYkZuwe/vTXlmnxL1OmQeVWnZgEpLDnWYVmb3W', 'organizer', 'actif', NOW(), 1, NULL),
+('Admin', 'User', 'admin@example.com', '$2y$10$T8ADVDUEdQmpM3AuYkZuwe/vTXlmnxL1OmQeVWnZgEpLDnWYVmb3W', 'admin', 'actif', NOW(), 1, NULL),
+('Robert', 'Johnson', 'robert@example.com', '$2y$10$T8ADVDUEdQmpM3AuYkZuwe/vTXlmnxL1OmQeVWnZgEpLDnWYVmb3W', 'user', 'actif', NOW(), 1, NULL);
 
 -- Vérifier l'insertion des utilisateurs
 SELECT 'Users inserted:', COUNT(*) as user_count FROM users;

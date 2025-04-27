@@ -59,13 +59,15 @@
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            color: rgba(255,255,255,.75);
+            color: rgba(255, 255, 255, .75);
             text-decoration: none;
             padding: 0.5rem 1rem;
         }
+
         .user-profile-link:hover {
-            color: rgba(255,255,255,1);
+            color: rgba(255, 255, 255, 1);
         }
+
         .user-avatar {
             width: 32px;
             height: 32px;
@@ -166,6 +168,20 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <!-- Custom JS -->
     <script src="<?= url('js/script.js') ?>"></script>
+
+    <!-- Place before </body> -->
+    <script>
+        var botmanWidget = {
+            frameEndpoint: '/event_management/public/botman-widget.html',
+            chatServer: '/event_management/public/botman',
+            title: 'Event Assistant',
+            introMessage: '👋 Hi! Type \"hello\" to start.',
+            mainColor: '#456765',
+            bubbleBackground: '#ff76a3',
+            aboutText: 'Event Management Chatbot'
+        };
+    </script>
+    <script src='https://cdn.jsdelivr.net/npm/botman-web-widget@0/build/js/widget.js'></script>
 </body>
 
 </html>

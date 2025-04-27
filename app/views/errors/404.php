@@ -3,14 +3,14 @@
 // $title = "404 - Page non trouvée";
 ?>
 
-<div class="error-container text-center">
-    <h1 class="display-1">404</h1>
-    <h2 class="mb-4">Page non trouvée</h2>
-    <p class="lead mb-4">Désolé, la page que vous recherchez n'existe pas ou a été déplacée.</p>
-    <div class="error-actions">
-        <a href="<?= url('') ?>" class="btn btn-primary btn-lg">
-            <i class="fas fa-home"></i> Retour à l'accueil
-        </a>
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 text-center">
+            <h1 class="display-1">404</h1>
+            <h2 class="mb-4">Page non trouvée</h2>
+            <p class="lead mb-4">La page que vous recherchez n'existe pas ou a été déplacée.</p>
+            <a href="<?= url('') ?>" class="btn btn-primary">Retour à l'accueil</a>
+        </div>
     </div>
 </div>
 

@@ -13,6 +13,9 @@ require_once __DIR__ . '/../app/helpers/functions.php';
 // Load database configuration
 require_once __DIR__ . '/../app/config/database.php';
 
+// Load Database class
+require_once __DIR__ . '/../app/Database.php';
+
 // Debug information
 error_log("Request URI: " . $_SERVER['REQUEST_URI']);
 error_log("BASE_URL: " . BASE_URL);
@@ -102,8 +105,8 @@ try {
         list($controller, $method) = explode('@', $routes[$matchedRoute]);
         error_log("Executing controller: " . $controller . ", method: " . $method);
         
-        // Create controller instance with database connection
-        $db = require __DIR__ . '/../app/config/database.php';
+        // Create controller instance with PDO connection
+        $db = Database::getInstance()->getConnection();
         $controllerInstance = new $controller($db);
         
         // Call the method with parameters

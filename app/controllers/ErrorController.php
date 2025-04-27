@@ -6,34 +6,24 @@ class ErrorController {
     }
 
     public function notFound() {
-        header("HTTP/1.0 404 Not Found");
+        http_response_code(404);
         $title = "404 - Page non trouvée";
+        $currentPage = 'error';
         
-        // S'assurer que le buffer est vide
-        if (ob_get_level()) {
-            ob_end_clean();
-        }
-
         ob_start();
         require_once __DIR__ . '/../views/errors/404.php';
         $content = ob_get_clean();
-
         require_once __DIR__ . '/../views/layouts/main.php';
     }
 
     public function serverError() {
-        header("HTTP/1.0 500 Internal Server Error");
+        http_response_code(500);
         $title = "500 - Erreur serveur";
+        $currentPage = 'error';
         
-        // S'assurer que le buffer est vide
-        if (ob_get_level()) {
-            ob_end_clean();
-        }
-
         ob_start();
         require_once __DIR__ . '/../views/errors/500.php';
         $content = ob_get_clean();
-
         require_once __DIR__ . '/../views/layouts/main.php';
     }
 } 
