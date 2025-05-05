@@ -67,27 +67,35 @@ class UserController
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $email = $_POST['email'] ?? '';
             $password = $_POST['password'] ?? '';
+            $captcha = $_POST['captcha'] ?? '';
 
-            $user = $this->userModel->login($email, $password);
-            if ($user) {
-                $_SESSION['user_id'] = $user['id'];
-                $_SESSION['user_email'] = $user['email'];
-                $_SESSION['user_role'] = $user['role'];
-                $_SESSION['user_firstname'] = $user['firstname'];
-                $_SESSION['user_lastname'] = $user['lastname'];
-                $_SESSION['success'] = "Connexion réussie !";
-                
-                if ($user['role'] === 'admin') {
-                    redirect('admin/dashboard');
-                } else {
-                    redirect('');
-                }
+            // Validate captcha first
+            require_once __DIR__ . '/../helpers/CaptchaHelper.php';
+            if (!CaptchaHelper::validateCaptcha($captcha)) {
+                $_SESSION['error'] = "Code de vérification incorrect";
             } else {
-                $_SESSION['error'] = "Email ou mot de passe incorrect";
+                $user = $this->userModel->login($email, $password);
+                if ($user) {
+                    $_SESSION['user_id'] = $user['id'];
+                    $_SESSION['user_email'] = $user['email'];
+                    $_SESSION['user_role'] = $user['role'];
+                    $_SESSION['user_firstname'] = $user['firstname'];
+                    $_SESSION['user_lastname'] = $user['lastname'];
+                    $_SESSION['success'] = "Connexion réussie !";
+                    
+                    if ($user['role'] === 'admin') {
+                        redirect('admin/dashboard');
+                    } else {
+                        redirect('');
+                    }
+                } else {
+                    $_SESSION['error'] = "Email ou mot de passe incorrect";
+                }
             }
         }
 
         ob_start();
+        require_once __DIR__ . '/../helpers/CaptchaHelper.php';
         require_once __DIR__ . '/../views/user/login.php';
         $content = ob_get_clean();
         require_once __DIR__ . '/../views/layouts/main.php';
@@ -253,6 +261,71 @@ class UserController
         }
         ob_start();
         require_once __DIR__ . '/../views/user/verify_code.php';
+        $content = ob_get_clean();
+        require_once __DIR__ . '/../views/layouts/main.php';
+    }
+
+    // Password reset request form
+    public function requestResetPassword()
+    {
+        $currentPage = 'request-reset-password';
+        $title = "Réinitialiser le mot de passe - Gestion d'Événements";
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $email = $_POST['email'] ?? '';
+            $captcha = $_POST['captcha'] ?? '';
+
+            // Validate captcha first
+            require_once __DIR__ . '/../helpers/CaptchaHelper.php';
+            if (!CaptchaHelper::validateCaptcha($captcha)) {
+                $_SESSION['error'] = "Code de vérification incorrect";
+            } else {
+                $user = $this->userModel->getUserByEmail($email);
+                if ($user) {
+                    $token = bin2hex(random_bytes(32));
+                    $this->userModel->setPasswordResetToken($email, $token);
+                    require_once __DIR__ . '/../helpers/MailHelper.php';
+                    $resetLink = url('reset-password?token=' . $token . '&email=' . urlencode($email));
+                    MailHelper::sendMail($email, 'Réinitialisation du mot de passe', "Cliquez sur ce lien pour réinitialiser votre mot de passe : <a href='$resetLink'>$resetLink</a>");
+                    $_SESSION['success'] = "Un email de réinitialisation a été envoyé.";
+                } else {
+                    $_SESSION['error'] = "Aucun utilisateur trouvé avec cet email.";
+                }
+            }
+        }
+        ob_start();
+        require_once __DIR__ . '/../helpers/CaptchaHelper.php';
+        require_once __DIR__ . '/../views/user/request_reset_password.php';
+        $content = ob_get_clean();
+        require_once __DIR__ . '/../views/layouts/main.php';
+    }
+
+    // Password reset form
+    public function resetPassword()
+    {
+        $currentPage = 'reset-password';
+        $title = "Nouveau mot de passe - Gestion d'Événements";
+        $token = $_GET['token'] ?? '';
+        $email = $_GET['email'] ?? '';
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $new_password = $_POST['new_password'] ?? '';
+            $confirm_password = $_POST['confirm_password'] ?? '';
+            if ($new_password !== $confirm_password) {
+                $_SESSION['error'] = "Les mots de passe ne correspondent pas.";
+            } elseif (strlen($new_password) < 8) {
+                $_SESSION['error'] = "Le mot de passe doit contenir au moins 8 caractères.";
+            } else {
+                if ($this->userModel->verifyPasswordResetToken($email, $token)) {
+                    $this->userModel->changePasswordByEmail($email, $new_password);
+                    $this->userModel->clearPasswordResetToken($email);
+                    $_SESSION['success'] = "Mot de passe réinitialisé avec succès.";
+                    redirect('login');
+                } else {
+                    $_SESSION['error'] = "Lien de réinitialisation invalide ou expiré.";
+                }
+            }
+        }
+        ob_start();
+        require_once __DIR__ . '/../views/user/reset_password.php';
         $content = ob_get_clean();
         require_once __DIR__ . '/../views/layouts/main.php';
     }

@@ -4,6 +4,9 @@
  * Cette vue est chargée par le UserController, méthode login()
  */
 
+// Debug information
+error_log("Starting login view rendering");
+
 // Ne pas définir le titre ici, il est déjà défini dans le contrôleur
 // $title = "Connexion - Gestion d'Événements";
 
@@ -11,52 +14,98 @@
 // ob_start();
 ?>
 
-<div class="auth-container">
-    <h1>Connexion</h1>
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h2 class="card-title text-center mb-4">Connexion</h2>
 
-    <?php if (isset($error)): ?>
-        <div class="alert alert-danger">
-            <?= htmlspecialchars($error) ?>
+                    <?php if (!empty($_SESSION['error'])): ?>
+                        <div class="alert alert-danger">
+                            <?= $_SESSION['error']; unset($_SESSION['error']); ?>
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if (!empty($_SESSION['success'])): ?>
+                        <div class="alert alert-success">
+                            <?= $_SESSION['success']; unset($_SESSION['success']); ?>
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if (APP_DEBUG): ?>
+                        <div class="alert alert-info">
+                            <p><strong>Conseil de connexion:</strong> Pour l'administrateur, utilisez:</p>
+                            <ul class="mb-0">
+                                <li>Email: admin@example.com</li>
+                                <li>Mot de passe: Admin123!</li>
+                            </ul>
+                        </div>
+                    <?php endif; ?>
+
+                    <form method="post" class="needs-validation" novalidate>
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Adresse email</label>
+                            <input type="email" class="form-control" id="email" name="email" required>
+                            <div class="invalid-feedback">
+                                Veuillez entrer une adresse email valide.
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Mot de passe</label>
+                            <input type="password" class="form-control" id="password" name="password" required>
+                            <div class="invalid-feedback">
+                                Veuillez entrer votre mot de passe.
+                            </div>
+                            <div class="mt-2">
+                                <a href="<?= url('request-reset-password') ?>" class="text-decoration-none">Mot de passe oublié ?</a>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Captcha</label>
+                            <div class="mb-2">
+                                <?php 
+                                error_log("Generating captcha...");
+                                $captchaImage = CaptchaHelper::generateCaptcha();
+                                error_log("Captcha generated: " . ($captchaImage ? "success" : "failed"));
+                                ?>
+                                <img src="data:image/png;base64,<?= $captchaImage ?>" alt="Captcha" class="img-fluid">
+                            </div>
+                            <input type="text" name="captcha" class="form-control" required placeholder="Entrez le code ci-dessus">
+                            <div class="invalid-feedback">
+                                Veuillez entrer le code captcha.
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">Se connecter</button>
+                            <a href="<?= url('register') ?>" class="btn btn-outline-secondary">Créer un compte</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
-    <?php endif; ?>
-
-    <!-- Message d'aide pour le débogage -->
-    <?php if (ini_get('display_errors')): ?>
-        <div class="alert alert-info">
-            <p><strong>Conseil de connexion:</strong> Pour l'administrateur, utilisez:</p>
-            <ul>
-                <li>Email: admin@example.com</li>
-                <li>Mot de passe: password123</li>
-            </ul>
-        </div>
-    <?php endif; ?>
-
-    <form action="<?= url('login') ?>" method="post" class="auth-form" id="loginForm">
-        <!-- Protection CSRF -->
-        <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
-
-        <div class="form-group">
-            <label for="email">Adresse email</label>
-            <input type="email" id="email" name="email" value="<?= htmlspecialchars($_POST['email'] ?? '') ?>">
-            <div id="email_error" class="error-message"></div>
-        </div>
-
-        <div class="form-group">
-            <label for="password">Mot de passe</label>
-            <input type="password" id="password" name="password">
-            <div id="password_error" class="error-message"></div>
-        </div>
-
-        <button type="submit" class="btn btn-primary">Se connecter</button>
-    </form>
-
-    <div class="auth-footer">
-        <p>Vous n'avez pas de compte ? <a href="<?= url('register') ?>">Inscrivez-vous</a></p>
     </div>
 </div>
 
-<!-- Include validation script -->
-<script src="<?= url('js/validation.js') ?>"></script>
+<script>
+// Form validation
+(function () {
+    'use strict'
+    var forms = document.querySelectorAll('.needs-validation')
+    Array.prototype.slice.call(forms).forEach(function (form) {
+        form.addEventListener('submit', function (event) {
+            if (!form.checkValidity()) {
+                event.preventDefault()
+                event.stopPropagation()
+            }
+            form.classList.add('was-validated')
+        }, false)
+    })
+})()
+</script>
 
 <style>
 .error-message {
@@ -134,6 +183,7 @@
 </style>
 
 <?php
+error_log("Login view rendering completed");
 // Ne pas terminer la capture du contenu ici, c'est fait dans le contrôleur
 // $content = ob_get_clean();
 ?>

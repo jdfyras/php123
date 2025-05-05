@@ -13,50 +13,52 @@ DELETE FROM users;
 -- Réactiver la vérification des clés étrangères
 SET FOREIGN_KEY_CHECKS = 1;
 
--- Insérer des utilisateurs (mot de passe "password123" hashé)
-INSERT INTO users (firstname, lastname, email, password_hash, role, status, created_at, is_verified, verification_code)
-VALUES 
-('John', 'Doe', 'john@example.com', '$2y$10$T8ADVDUEdQmpM3AuYkZuwe/vTXlmnxL1OmQeVWnZgEpLDnWYVmb3W', 'user', 'actif', NOW(), 1, NULL),
-('Jane', 'Smith', 'jane@example.com', '$2y$10$T8ADVDUEdQmpM3AuYkZuwe/vTXlmnxL1OmQeVWnZgEpLDnWYVmb3W', 'organizer', 'actif', NOW(), 1, NULL),
-('Admin', 'User', 'admin@example.com', '$2y$10$T8ADVDUEdQmpM3AuYkZuwe/vTXlmnxL1OmQeVWnZgEpLDnWYVmb3W', 'admin', 'actif', NOW(), 1, NULL),
-('Robert', 'Johnson', 'robert@example.com', '$2y$10$T8ADVDUEdQmpM3AuYkZuwe/vTXlmnxL1OmQeVWnZgEpLDnWYVmb3W', 'user', 'actif', NOW(), 1, NULL);
+-- Insert admin user (password: Admin123!)
+INSERT INTO users (firstname, lastname, email, password_hash, role, status, is_verified) VALUES
+('Admin', 'System', 'admin@example.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin', 'actif', 1);
+
+-- Insert sample users (password: Password123!)
+INSERT INTO users (firstname, lastname, email, password_hash, role, status, is_verified) VALUES
+('Jean', 'Dupont', 'jean@example.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'user', 'actif', 1),
+('Marie', 'Martin', 'marie@example.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'user', 'actif', 1),
+('Pierre', 'Bernard', 'pierre@example.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'user', 'actif', 1);
+
+-- Insert sample events
+INSERT INTO events (title, description, date, location, capacity, price, category, status, created_by) VALUES
+('Concert de Jazz', 'Une soirée exceptionnelle avec les meilleurs artistes de jazz.', DATE_ADD(NOW(), INTERVAL 1 MONTH), 'Salle Pleyel, Paris', 200, 45.00, 'Concert', 'upcoming', 1),
+('Festival de Théâtre', 'Trois jours de représentations théâtrales.', DATE_ADD(NOW(), INTERVAL 2 MONTH), 'Théâtre de la Ville, Paris', 150, 30.00, 'Théâtre', 'upcoming', 1),
+('Exposition d''Art Moderne', 'Découvrez les œuvres d''artistes contemporains.', DATE_ADD(NOW(), INTERVAL 15 DAY), 'Galerie d''Art Modern, Paris', 100, 15.00, 'Exposition', 'upcoming', 1),
+('Conférence Tech', 'Les dernières innovations technologiques.', DATE_ADD(NOW(), INTERVAL 3 WEEK), 'Centre de Conférences, Paris', 300, 25.00, 'Conférence', 'upcoming', 1);
+
+-- Insert sample reservations
+INSERT INTO reservations (user_id, event_id, status, number_of_tickets, total_price, payment_status) VALUES
+(2, 1, 'confirmed', 2, 90.00, 'completed'),
+(3, 1, 'confirmed', 1, 45.00, 'completed'),
+(2, 2, 'confirmed', 3, 90.00, 'completed'),
+(4, 3, 'pending', 2, 30.00, 'pending');
+
+-- Insert sample reviews
+INSERT INTO reviews (user_id, event_id, rating, comment) VALUES
+(2, 1, 5, 'Excellent concert ! Une ambiance extraordinaire.'),
+(3, 1, 4, 'Très bonne soirée, musiciens talentueux.'),
+(2, 2, 5, 'Superbe mise en scène et excellents acteurs.'),
+(4, 2, 4, 'Une belle découverte théâtrale.');
+
+-- Insert sample notifications
+INSERT INTO notifications (user_id, title, message, type) VALUES
+(2, 'Confirmation de réservation', 'Votre réservation pour le Concert de Jazz a été confirmée.', 'success'),
+(3, 'Rappel événement', 'Le Concert de Jazz aura lieu demain !', 'info'),
+(2, 'Nouveau commentaire', 'Quelqu''un a commenté un événement que vous suivez.', 'info'),
+(4, 'Paiement en attente', 'N''oubliez pas de finaliser votre paiement pour l''Exposition d''Art Moderne.', 'warning');
 
 -- Vérifier l'insertion des utilisateurs
 SELECT 'Users inserted:', COUNT(*) as user_count FROM users;
 
--- Insérer des événements
-INSERT INTO events (title, description, date, location, price, available_tickets, created_at)
-VALUES 
-('Concert de Jazz', 'Un magnifique concert de jazz avec les meilleurs artistes de la scène locale. Une soirée à ne pas manquer!', '2025-06-15 20:00:00', 'Salle Pleyel, Paris', 35.50, 150, NOW()),
-('Festival de Musique', 'Festival de musique en plein air avec plusieurs scènes et des artistes internationaux', '2025-07-20 14:00:00', 'Parc des Expositions, Lyon', 65.00, 500, NOW()),
-('Conférence Tech', 'Découvrez les dernières innovations technologiques présentées par les experts du domaine', '2025-05-10 09:00:00', 'Centre de Congrès, Marseille', 25.00, 200, NOW()),
-('Théâtre : Roméo et Juliette', 'Représentation de la célèbre pièce de Shakespeare par une troupe renommée', '2025-06-05 19:30:00', 'Théâtre National, Nice', 45.00, 100, NOW()),
-('Exposition d\'Art Moderne', 'Découvrez les œuvres des plus grands artistes contemporains', '2025-05-01 10:00:00', 'Galerie d\'Art, Bordeaux', 15.00, 300, NOW()),
-('Match de Football', 'Match de championnat opposant les deux meilleures équipes de la saison', '2025-05-25 21:00:00', 'Stade Municipal, Lille', 30.00, 800, NOW());
-
 -- Vérifier l'insertion des événements
 SELECT 'Events inserted:', COUNT(*) as event_count FROM events;
 
--- Insérer des réservations
-INSERT INTO reservations (user_id, event_id, quantity, total_price, status, created_at)
-VALUES 
-(1, 1, 2, 71.00, 'payé', NOW()),
-(1, 3, 1, 25.00, 'payé', NOW()),
-(2, 2, 3, 195.00, 'payé', NOW()),
-(2, 4, 2, 90.00, 'en attente', NOW()),
-(3, 5, 4, 60.00, 'payé', NOW()),
-(3, 6, 2, 60.00, 'annulé', NOW());
-
 -- Vérifier l'insertion des réservations
 SELECT 'Reservations inserted:', COUNT(*) as reservation_count FROM reservations;
-
--- Insérer des avis
-INSERT INTO reviews (user_id, event_id, rating, comment, created_at)
-VALUES 
-(1, 1, 5, 'Concert exceptionnel ! Les musiciens étaient talentueux et l\'ambiance était incroyable.', NOW()),
-(1, 3, 4, 'Conférence très intéressante avec des intervenants de qualité. Un petit bémol sur l\'organisation.', NOW()),
-(2, 2, 5, 'Festival incroyable ! La programmation était variée et la qualité sonore impeccable.', NOW()),
-(3, 5, 3, 'Exposition intéressante mais un peu courte pour le prix demandé.', NOW());
 
 -- Vérifier l'insertion des avis
 SELECT 'Reviews inserted:', COUNT(*) as review_count FROM reviews; 

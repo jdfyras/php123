@@ -238,4 +238,27 @@ class User
     {
         return $this->role;
     }
+
+    // Password reset logic
+    public function setPasswordResetToken($email, $token) {
+        $stmt = $this->db->prepare("UPDATE users SET password_reset_token = ?, password_reset_expires = DATE_ADD(NOW(), INTERVAL 1 HOUR) WHERE email = ?");
+        return $stmt->execute([$token, $email]);
+    }
+
+    public function verifyPasswordResetToken($email, $token) {
+        $stmt = $this->db->prepare("SELECT id FROM users WHERE email = ? AND password_reset_token = ? AND password_reset_expires > NOW()");
+        $stmt->execute([$email, $token]);
+        return $stmt->rowCount() > 0;
+    }
+
+    public function changePasswordByEmail($email, $new_password) {
+        $password_hash = password_hash($new_password, PASSWORD_DEFAULT);
+        $stmt = $this->db->prepare("UPDATE users SET password_hash = ?, is_verified = 1 WHERE email = ?");
+        return $stmt->execute([$password_hash, $email]);
+    }
+
+    public function clearPasswordResetToken($email) {
+        $stmt = $this->db->prepare("UPDATE users SET password_reset_token = NULL, password_reset_expires = NULL WHERE email = ?");
+        return $stmt->execute([$email]);
+    }
 }

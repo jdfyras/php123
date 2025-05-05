@@ -56,14 +56,18 @@ try {
     // Get the requested URL
     $request_uri = $_SERVER['REQUEST_URI'];
     error_log("Original Request URI: " . $request_uri);
+    error_log("SERVER variables: " . print_r($_SERVER, true));
 
     // Remove query string if present
     $request_uri = parse_url($request_uri, PHP_URL_PATH);
+    error_log("After parse_url: " . $request_uri);
 
     // Remove base URL from request
     $base_path = parse_url(BASE_URL, PHP_URL_PATH);
+    error_log("Base path: " . $base_path);
     if (!empty($base_path) && strpos($request_uri, $base_path) === 0) {
         $request_uri = substr($request_uri, strlen($base_path));
+        error_log("After removing base path: " . $request_uri);
     }
 
     // Clean up the path

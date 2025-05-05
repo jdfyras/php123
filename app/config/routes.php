@@ -14,6 +14,8 @@ $routes = [
     '/profile/deactivate' => 'UserController@deactivateAccount',
     '/profile/delete' => 'UserController@deleteAccount',
     '/verify_code' => 'UserController@verify_code',
+    '/request-reset-password' => 'UserController@requestResetPassword',
+    '/reset-password' => 'UserController@resetPassword',
 
     // Routes événements
     '/events' => 'EventController@index',
